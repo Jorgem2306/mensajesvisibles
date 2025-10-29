@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Jack-o%27-Lantern_2010.jpg/640px-Jack-o%27-Lantern_2010.jpg" type="image/jpg">
+    <title>Muro de Secretos - Halloween</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Metal+Mania&family=Nosifier&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Estilos CSS Base y Animaciones (Sin cambios significativos) */
+        @keyframes movingGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes shiver {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-1px, 0.5px) rotate(0.2deg); }
+            50% { transform: translate(1px, -0.5px) rotate(-0.2deg); }
+            75% { transform: translate(-1px, 0.5px) rotate(0.2deg); }
+        }
+        
+        body {
+            font-family: 'Nosifier', cursive;
+            background: linear-gradient(135deg, #0f0f0f, #220022, #0f0f0f, #331133);
+            background-size: 400% 400%;
+            animation: movingGradient 25s ease infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 50px 20px;
+            color: #e0e0e0;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-family: 'Metal Mania', cursive;
+            font-size: 3.5em;
+            color: #9DFF20;
+            text-shadow: 
+                -3px -3px 0 #5A005A,
+                3px 3px 0 #5A005A,
+                5px 5px 10px rgba(0,0,0,0.8);
+            margin-bottom: 40px;
+            text-align: center;
+            animation: shiver 4s infinite ease-in-out;
+        }
+
+        /* === AJUSTES CLAVE AQUÍ: CONTENEDOR DE MENSAJES === */
+        #mensajes-container {
+            /* Eliminamos 'flex-wrap: wrap' y simplemente centramos */
+            display: flex;
+            flex-direction: column; /* Asegura que los ítems se apilen verticalmente */
+            align-items: center; /* Centra las tarjetas horizontalmente */
+            gap: 30px; 
+            width: 100%;
+            max-width: 800px; /* Reducimos el ancho máximo para mejor lectura vertical */
+            padding: 20px;
+        }
+
+        /* === AJUSTES CLAVE AQUÍ: ESTILOS DE CADA MENSAJE === */
+        .mensaje-card {
+            background-color: rgba(30, 30, 30, 0.95);
+            border: 2px solid #ff9900;
+            border-radius: 10px;
+            padding: 25px;
+            /* CAMBIO: Ocupa todo el ancho del contenedor padre */
+            width: 100%; 
+            /* Se ha eliminado el ancho fijo (antes era 350px) */
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 153, 0, 0.4);
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            min-height: 150px;
+            box-sizing: border-box;
+        }
+
+        .mensaje-card:hover {
+            transform: translateY(-5px); /* Eliminamos la rotación para hacerlo más limpio */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px #FF00FF;
+        }
+
+        .mensaje-card p {
+            font-family: 'Creepster', cursive;
+            font-size: 1.4em;
+            color: #e0e0e0;
+            margin: 0;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .mensaje-card small {
+            display: none;
+        }
+
+        .icon-pin {
+            position: absolute;
+            top: -15px;
+            right: 15px;
+            color: #FF00FF;
+            font-size: 2em;
+            transform: rotate(15deg);
+        }
+
+        #loading-message {
+            font-family: 'Creepster', cursive;
+            font-size: 2em;
+            color: #ff9900;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1><i class="fas fa-eye"></i> EL MURO DE LOS SECRETOS ANÓNIMOS <i class="fas fa-eye"></i></h1>
+    
+    <div id="loading-message">Cargando la cripta...</div>
+
+    <div id="mensajes-container">
+        </div>
+
+<script>
+    // TU URL DE GOOGLE APPS SCRIPT (Es la misma URL que usas para enviar)
+    const URL_DE_TU_SCRIPT = "https://script.google.com/macros/s/AKfycbxeYWIvJuldFj4n_IMo7MPFrmXH-wuIBbFJZ4jylPyw-cZk1JFmDQlsKsV-6Qy3SOTI/exec";
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('mensajes-container');
+        const loading = document.getElementById('loading-message');
+
+        function cargarMensajes() {
+            loading.style.display = 'block';
+            container.innerHTML = ''; 
+
+            fetch(URL_DE_TU_SCRIPT)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('El abismo no responde.');
+                    }
+                    return response.json();
+                })
+                .then(mensajes => {
+                    loading.style.display = 'none';
+                    if (mensajes.length === 0) {
+                        container.innerHTML = '<p id="loading-message">El códice aún está vacío...</p>';
+                        return;
+                    }
+                    
+                    mensajes.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'mensaje-card';
+                        
+                        card.innerHTML = `
+                            <i class="fas fa-skull-crossbones icon-pin"></i>
+                            <p>${item.mensaje}</p>
+                        `;
+                        container.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    loading.innerHTML = '<p id="loading-message">Error al conectar con la cripta: ' + error.message + '</p>';
+                    console.error('Error al cargar los mensajes:', error);
+                });
+        }
+
+        cargarMensajes();
+    });
+</script>
+
+</body>
+</html>
