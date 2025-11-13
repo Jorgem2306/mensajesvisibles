@@ -87,7 +87,15 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             min-height: 100px;
             box-sizing: border-box;
+            /* Animación para que los nuevos mensajes aparezcan suavemente */
+            animation: fadeIn 0.8s ease-out;
         }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
 
         .mensaje-card:hover {
             transform: scale(1.02); 
@@ -112,7 +120,7 @@
         .icon-pin {
             position: absolute;
             top: -15px;
-            left: 15px; /* Icono a la izquierda para cambiar la sensación */
+            left: 15px; 
             color: var(--primary-pink);
             font-size: 2.2em;
             transform: rotate(-10deg);
@@ -147,17 +155,43 @@
     </div>
 
 <script>
-    // TU URL DE GOOGLE APPS SCRIPT (Mantenemos la URL que proporcionaste)
+    // ⚠️ IMPORTANTE: Asegúrate de que esta URL sea la correcta para tu Google Apps Script.
     const URL_DE_TU_SCRIPT = "https://script.google.com/macros/s/AKfycbxeYWIvJuldFj4n_IMo7MPFrmXH-wuIBbFJZ4jylPyw-cZk1JFmDQlsKsV-6Qy3SOTI/exec";
+
+    // Array para guardar el texto de los mensajes que ya están en la página.
+    // Lo usaremos para evitar duplicados y saber qué es "nuevo".
+    let mensajesMostradosTextos = []; 
 
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('mensajes-container');
         const loading = document.getElementById('loading-message');
 
-        function cargarMensajes() {
-            loading.style.display = 'block';
-            container.innerHTML = ''; 
+        /**
+         * Crea el elemento HTML de la tarjeta de mensaje.
+         */
+        function crearTarjetaMensaje(item) {
+            const card = document.createElement('div');
+            card.className = 'mensaje-card';
+            // Puedes usar el hash del mensaje como ID si tu hoja de cálculo no tiene IDs únicos
+            card.setAttribute('data-mensaje-hash', item.mensaje.substring(0, 30)); 
+            
+            card.innerHTML = `
+                <i class="fas fa-sticky-note icon-pin"></i> 
+                <p>${item.mensaje}</p>
+            `;
+            return card;
+        }
 
+        /**
+         * Función principal para cargar y actualizar los mensajes.
+         */
+        function cargarMensajes() {
+            // Mostrar mensaje de carga solo si es la primera vez que se carga (evitar el 'flash' en las actualizaciones)
+            if (mensajesMostradosTextos.length === 0) {
+                loading.style.display = 'block';
+                container.innerHTML = ''; // Limpiar el contenedor solo en la carga inicial
+            }
+            
             fetch(URL_DE_TU_SCRIPT)
                 .then(response => {
                     if (!response.ok) {
@@ -165,36 +199,63 @@
                     }
                     return response.json();
                 })
-                .then(mensajes => {
+                .then(mensajesRecibidos => {
                     loading.style.display = 'none';
-                    if (mensajes.length === 0) {
-                        // Mensaje para cuando no hay chismes
-                        container.innerHTML = '<p id="loading-message" style="color: var(--primary-pink);">Todavía nadie ha susurrado nada...</p>';
+
+                    if (mensajesRecibidos.length === 0) {
+                        if (mensajesMostradosTextos.length === 0) {
+                           container.innerHTML = '<p id="loading-message" style="color: var(--primary-pink);">Todavía nadie ha susurrado nada...</p>';
+                        }
                         return;
                     }
                     
-                    // MODIFICACIÓN CLAVE: Se elimina la inversión para mostrar el primer mensaje arriba
-                    mensajes.forEach(item => {
-                        const card = document.createElement('div');
-                        card.className = 'mensaje-card';
+                    // Filtrar los mensajes que NO están en nuestra lista de mostrados
+                    const soloMensajesNuevos = mensajesRecibidos.filter(item => 
+                        !mensajesMostradosTextos.includes(item.mensaje)
+                    );
+
+                    if (soloMensajesNuevos.length > 0) {
+                        // Añadir los nuevos mensajes al DOM y a la lista de control
+                        soloMensajesNuevos.forEach(item => {
+                            const newCard = crearTarjetaMensaje(item);
+                            // Añadir al FINAL del contenedor para que 'se aumente solo abajo'
+                            container.appendChild(newCard); 
+                            
+                            // Guardar el texto del mensaje en nuestra lista de control
+                            mensajesMostradosTextos.push(item.mensaje); 
+                        });
                         
-                        // Usamos un ícono de nota adhesiva
-                        card.innerHTML = `
-                            <i class="fas fa-sticky-note icon-pin"></i> 
-                            <p>${item.mensaje}</p>
-                        `;
-                        container.appendChild(card);
-                    });
+                        console.log(`Se han añadido ${soloMensajesNuevos.length} nuevos chismes.`);
+                        
+                        // Desplazamiento suave (opcional): si el usuario está cerca del final, desplázalo abajo
+                        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                        }
+                        
+                    } else if (mensajesMostradosTextos.length === 0) {
+                         // Manejo de la carga inicial si todos los mensajes ya existían (esto solo ocurre si el filtro inicial fue omitido)
+                         // En este caso, si la lista de mostrados está vacía, debemos cargar todo.
+                         mensajesRecibidos.forEach(item => {
+                            const newCard = crearTarjetaMensaje(item);
+                            container.appendChild(newCard);
+                            mensajesMostradosTextos.push(item.mensaje);
+                        });
+                        console.log('Carga inicial completa.');
+                    }
                 })
                 .catch(error => {
-                    loading.innerHTML = '<p id="loading-message" style="color: red;">Error al cargar los chismes: ' + error.message + '</p>';
+                    if (mensajesMostradosTextos.length === 0) {
+                        loading.innerHTML = '<p id="loading-message" style="color: red;">Error al cargar los chismes: ' + error.message + '</p>';
+                    }
                     console.error('Error al cargar los mensajes:', error);
                 });
         }
 
+        // 1. Llamada inicial para cargar los mensajes por primera vez
         cargarMensajes();
-        // Opcional: Recargar cada 30 segundos para nuevos chismes
-        setInterval(cargarMensajes, 45000); 
+        
+        // 2. Establecer el temporizador para la actualización silenciosa (cada 30 segundos)
+        setInterval(cargarMensajes, 1000); 
     });
 </script>
 
